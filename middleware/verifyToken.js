@@ -34,18 +34,3 @@ async function verifyToken(req, res, next) {
 
 module.exports = verifyToken;
 
-
-// JWT --> Refersh Token, 
-
-// cursor --> 11
-
-// generate opt --> post emailid --> smpt otp --> token, opt sent sucess 
-// verify opt --> post opt, token --> de(token) === opt --> chnged the passwd
-
-// APIKEY -->  APIKEY <-- 
-
-// Razory pay 
-
-//  limit, offset --> 1,2,3,
-
-// CRSF token
