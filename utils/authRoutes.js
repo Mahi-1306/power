@@ -1,6 +1,7 @@
 const express = require('express');
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
+const {sendOTPEmail,  verifyOTP} = require('./mail')
 const verifyToken = require('../middleware/verifyToken')
 const { PrismaClient } = require('@prisma/client');
 
@@ -64,8 +65,37 @@ router.post('/login', async (req, res) => {
         res.json({ token });
     } catch (err) {
         res.status(500).json({ error: err.message });
-    }6
+    }
 });
+router.post('/send-otp', async (req, res) => {
+    const { email } = req.body;
+    if (!email) {
+        return res.status(400).json({ error: 'Email is required' });
+    }
+
+    try {
+        const token = await sendOTPEmail(email);
+        res.status(200).json({ message: 'OTP sent successfully', token });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to send OTP' });
+    }
+});
+
+router.post('/verify-otp', async(req, res) => {
+    const { token, otp } = req.body;
+
+    if (!token || !otp) {
+        return res.status(400).json({ error: 'Token and OTP are required' });
+    }
+
+    const isValid = verifyOTP(token, otp);
+    if (isValid) {
+        res.status(200).json({ message: 'OTP verified successfully' });
+    } else {
+        res.status(401).json({ error: 'Invalid or expired OTP' });
+    }
+});
+
 
 
 

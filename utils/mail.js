@@ -1,5 +1,6 @@
 const nodemailer = require("nodemailer");
 const jwt = require("jsonwebtoken");
+require('dotenv').config();
 
 const JWT_SECRET = process.env.JWT_SECRET || "your_secret_key";
 
@@ -8,7 +9,7 @@ function generateOTP(length = 6) {
 }
 
 const transporter = nodemailer.createTransport({
-  host: process.env.EMAIL_HOST,
+  host: 'smtp.gmail.com',
   port: 587,
   secure: false,
   auth: {
@@ -19,8 +20,8 @@ const transporter = nodemailer.createTransport({
 
 async function sendOTPEmail(toEmail) {
   const otp = generateOTP();
+  try {
   const token = jwt.sign({ otp }, JWT_SECRET, { expiresIn: "5m" });
-
   const mailOptions = {
     from: `"POWER CONSUMPTION TRACKER OTP" <${process.env.EMAIL_USER}>`,
     to: toEmail,
@@ -31,8 +32,13 @@ async function sendOTPEmail(toEmail) {
     `,
   };
 
-  await transporter.sendMail(mailOptions);
-  return token;
+
+  const info = await transporter.sendMail(mailOptions);
+    console.log("Mail sent:", info.response);
+    return token;
+  }catch(error){
+  console.log(error)
+}
 }
 
 function verifyOTP(token, inputOtp) {
