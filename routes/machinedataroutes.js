@@ -37,7 +37,7 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.get("getbyid/:id", async (req, res) => {
+router.get("/getbyid/:id", async (req, res) => {
   const id = parseInt(req.params.id);
 
   try {
@@ -54,6 +54,44 @@ router.get("getbyid/:id", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+router.get("/getbyname/:name", async (req, res) => {
+  const name = req.params.name;
+
+  try {
+    const rawData = await prisma.machinedata.findMany({
+      where: {
+        machine: {
+          machine_name: {
+            contains: name
+          },
+        },
+      },
+      include: {
+        machine: {
+          select: {
+            machine_name: true,
+          },
+        },
+      },
+    });
+
+    if (rawData.length === 0) {
+      return res.status(404).json({ error: "No data found for this machine name" });
+    }
+
+    const formattedData = rawData.map(entry => ({
+      machine_name: entry.machine.machine_name,
+      data: entry.data,
+      date: entry.date,
+    }));
+
+    res.json(formattedData);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 
 router.put("/update/:id", async (req, res) => {
   const id = parseInt(req.params.id);
