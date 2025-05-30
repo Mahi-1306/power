@@ -42,7 +42,7 @@ router.post('/register', async (req, res) => {
 // 👉 Login Route
 
 // ratelimiter --> window time , count
-router.post('/login', async (req, res) => {
+/*router.post('/login', async (req, res) => {
     const { username, password } = req.body;
 
     if (!username || !password) {
@@ -66,7 +66,40 @@ router.post('/login', async (req, res) => {
     } catch (err) {
         res.status(500).json({ error: err.message });
     }
+});*/
+
+router.post('/login', async (req, res) => {
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Username and password are required' });
+  }
+
+  try {
+    const user = await prisma.user.findUnique({ where: { username } });
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
+
+    const passwordMatch = await bcrypt.compare(password, user.password);
+    if (!passwordMatch) {
+      return res.status(401).json({ error: 'Incorrect password' });
+    }
+
+    const token = jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET, { expiresIn: '1h' });
+    const payload = jwt.verify(token, JWT_SECRET);
+   console.log('Payload:', payload);
+    res.json({ token, payload });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
+
+
+router.get('/me', verifyToken, (req, res) => {
+  res.json({ payload: req.user });
+});
+
 router.post('/send-otp', async (req, res) => {
     const { email } = req.body;
     if (!email) {
