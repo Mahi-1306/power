@@ -129,10 +129,26 @@ router.post('/verify-otp', async(req, res) => {
     }
 });
 
+router.put('/reset-password', async (req, res) => {
+    const { token, newPassword } = req.body;
 
+    if (!token || !newPassword) {
+        return res.status(400).json({ error: 'Token and new password are required' });
+    }
 
+    if (!verifiedOTPs.has(token)) {
+        return res.status(403).json({ error: 'OTP not verified or expired' });
+    }
 
+    try {
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
 
+        await updateUserPassword(token, hashedPassword); 
+        verifiedOTPs.delete(token);
 
-
+        return res.status(200).json({ message: 'Password updated successfully' });
+    } catch (err) {
+        return res.status(500).json({ error: 'Failed to update password' });
+    }
+});
 module.exports = router;
