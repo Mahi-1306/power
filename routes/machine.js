@@ -5,7 +5,7 @@ const prisma = new PrismaClient();
 const router = express.Router();
 
 
-router.use(verifyToken)
+//router.use(verifyToken)
 
 router.post('/post',async(req,res)=>{
 const {machine_name, created_by}=req.body;

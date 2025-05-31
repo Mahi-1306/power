@@ -8,7 +8,7 @@ const prisma = new PrismaClient();
 router.use(verifyToken)
 
 router.post("/add", async (req, res) => {
-  const { machine_id, date: dateString, data } = req.body;
+  const { machine_id, Date: dateString ,data} = req.body;
 
   let parsedDate = null;
   if (dateString) {
@@ -21,9 +21,9 @@ router.post("/add", async (req, res) => {
   try {
     const result = await prisma.machinedata.create({
       data: {
-        machine_id: parseInt(machine_id),
-        date: parsedDate || new Date(), 
-        data: data,
+        machine_id:parseInt(machine_id),
+        date: parsedDate||new Date(),
+        data:data,
       },
     });
 
@@ -173,6 +173,28 @@ router.delete("/delete/:id", async (req, res) => {
       return res.status(404).json({ error: "Data not found" });
     }
     res.status(500).json({ error: error.message });
+  }
+});
+router.get('/api/machinedata', async (req, res) => {
+  const limit = parseInt(req.query.limit) || 10;
+  const offset = parseInt(req.query.offset) || 0;
+
+  try {
+    const data = await prisma.machinedata.findMany({
+      skip: offset,
+      take: limit,
+      include: {
+        machine: true, // include related machine info (optional)
+      },
+      orderBy: {
+        id: 'asc', // optional: to keep results consistent
+      },
+    });
+
+    res.json(data);
+  } catch (err) {
+    console.error(err);
+    res.status(500).send('Server error');
   }
 });
 
