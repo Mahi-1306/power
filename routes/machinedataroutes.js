@@ -1,11 +1,14 @@
 const express = require("express");
 const { PrismaClient } = require("@prisma/client");
 const router = express.Router();
+const verifyToken = require('../middleware/verifyToken');
 
 const prisma = new PrismaClient();
 
+router.use(verifyToken)
+
 router.post("/add", async (req, res) => {
-  const { machine_id, Date: dateString } = req.body;
+  const { machine_id, date: dateString, data } = req.body;
 
   let parsedDate = null;
   if (dateString) {
@@ -16,17 +19,20 @@ router.post("/add", async (req, res) => {
   }
 
   try {
-    const data = await prisma.machinedata.create({
+    const result = await prisma.machinedata.create({
       data: {
-        machine_id,
-        Date: parsedDate,
+        machine_id: parseInt(machine_id),
+        date: parsedDate || new Date(), 
+        data: data,
       },
     });
-    res.status(201).json(data);
+
+    res.status(201).json(result);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
+
 
 router.get("/", async (req, res) => {
   try {
@@ -92,6 +98,37 @@ router.get("/getbyname/:name", async (req, res) => {
   }
 });
 
+ router.get("/bydate", async (req, res) => {
+  try {
+    let { startDate, endDate } = req.query;
+
+    if (!startDate || !endDate) {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, '0');
+      const dd = String(today.getDate()).padStart(2, '0');
+
+      startDate = `${yyyy}-${mm}-${dd}T00:00:00.000Z`;
+      endDate = `${yyyy}-${mm}-${dd}T23:59:59.999Z`;
+    }
+
+    
+    const data = await prisma.machinedata.findMany({
+      where: {
+        date: {
+          gte: new Date(startDate),
+          lte: new Date(endDate),
+        }
+      }
+    });
+
+    res.json(data);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+}); 
+
+
 
 router.put("/update/:id", async (req, res) => {
   const id = parseInt(req.params.id);
@@ -140,3 +177,4 @@ router.delete("/delete/:id", async (req, res) => {
 });
 
 module.exports = router;
+

@@ -1,13 +1,13 @@
 const express=require('express');
-const router=express.Router();
 const { PrismaClient } = require('@prisma/client');
 const verifyToken = require('../middleware/verifyToken');
 const prisma = new PrismaClient();
+const router = express.Router();
 
 
 router.use(verifyToken)
 
-router.post('/',async(req,res)=>{
+router.post('/post',async(req,res)=>{
 const {machine_name, created_by}=req.body;
 try{
     const machine=await prisma.machine.create({
@@ -25,7 +25,7 @@ catch(error)
 
 });
 
-router.get('/',async (req,res)=>{
+router.get('/get',async (req,res)=>{
     const machines=await prisma.machine.findMany({
         include:{createdBy: true, data: true},
     });
