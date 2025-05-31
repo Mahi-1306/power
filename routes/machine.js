@@ -5,7 +5,7 @@ const verifyToken = require('../middleware/verifyToken');
 const prisma = new PrismaClient();
 
 
-router.use(verifyToken)
+//router.use(verifyToken)
 
 router.post('/',async(req,res)=>{
 const {machine_name, created_by}=req.body;
