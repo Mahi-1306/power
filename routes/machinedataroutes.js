@@ -5,7 +5,7 @@ const verifyToken = require('../middleware/verifyToken');
 
 const prisma = new PrismaClient();
 
-router.use(verifyToken)
+//router.use(verifyToken)
 
 router.post("/add", async (req, res) => {
   const { machine_id, Date: dateString ,data} = req.body;
@@ -144,10 +144,12 @@ router.put("/update/:id", async (req, res) => {
 
   try {
     const updated = await prisma.machinedata.update({
-      where: { data_id: id },
+      where: { id: id },
       data: {
-        machine_id,
-        Date: parsedDate,
+        machine: {
+          connect: { id: machine_id }, // connect via relation
+        },
+        date: parsedDate,
       },
     });
 
@@ -159,6 +161,7 @@ router.put("/update/:id", async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
 
 router.delete("/delete/:id", async (req, res) => {
   const id = parseInt(req.params.id);

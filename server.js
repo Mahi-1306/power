@@ -19,6 +19,7 @@ app.use('/api/auth', authRoutes);
 app.use('/machinedataroute',machinedataroutes)
 app.use('/chartroute',chartroute)
 app.use('/machineroute',machineroute)
-app.listen(3001, () => {
+app.use("/", ()=> {return {"msg":"Hello World"}})
+app.listen(3001," 192.168.163.7", () => {
     console.log('Server running on http://localhost:3001');
 });

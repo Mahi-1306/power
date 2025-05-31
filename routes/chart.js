@@ -10,15 +10,18 @@ const prisma = new PrismaClient();
 
 router.get('/chart-data', async (req, res) => {
  
-    const start_date = '2025-05-28'; // Correct format
-  const end_date = '2025-05-30';
+    const start_date = '2025-05-25'; // Correct format
+  const end_date = '2025-05-31';
   try {
-    const data = await prisma.$queryRaw`
-      SELECT date,sum(CAST(data AS DECIMAL(10,2))) as data
-      FROM machinedata
-      WHERE date between ${start_date} and ${end_date}
-      group by date;
-    `;
+   const data = await prisma.$queryRaw`
+  SELECT 
+    DATE(date) as date, 
+  
+    SUM(CAST(data AS DECIMAL(10,2))) as data
+  FROM machinedata
+  WHERE DATE(date) BETWEEN ${start_date} AND ${end_date}
+  GROUP BY DATE(date);
+`;
 
     res.json(data);
   } catch (error) {
@@ -27,15 +30,13 @@ router.get('/chart-data', async (req, res) => {
   }
 });
 router.get('/chart-data/mon', async (req, res) => {
- 
-    
   try {
     const data = await prisma.$queryRaw`
-      SELECT DATE_FORMAT(date, '%Y-%m') AS month, 
-         SUM(CAST(data AS DECIMAL(10,2))) AS total
-  FROM machinedata
-  GROUP BY month
-  ORDER BY month;
+      SELECT DATE_FORMAT(date, '%b') AS month, 
+             SUM(CAST(data AS DECIMAL(10,2))) AS total
+      FROM machinedata
+      GROUP BY month
+      ORDER BY STR_TO_DATE(month, '%b');
     `;
 
     res.json(data);
@@ -45,6 +46,28 @@ router.get('/chart-data/mon', async (req, res) => {
   }
 });
 
+
+router.get('/chart-data-day', async (req, res) => {
+  const start_date = '2025-05-25';
+  const end_date = '2025-05-30';
+
+  try {
+    const data = await prisma.$queryRaw`
+      SELECT 
+        DATE_FORMAT(date, '%a') AS day,  -- %a gives abbreviated weekday name (e.g., Mon)
+        SUM(CAST(data AS DECIMAL(10,2))) AS data
+      FROM machinedata
+      WHERE date BETWEEN ${start_date} AND ${end_date}
+      GROUP BY day
+      ORDER BY FIELD(day, 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun');  -- optional ordering
+    `;
+
+    res.json(data);
+  } catch (error) {
+    console.error('Error fetching chart data:', error);
+    res.status(500).json({ error: 'Internal server error' });
+  }
+});
 
 
 
