@@ -12,7 +12,7 @@ model machine {
   machine_name String        @unique(map: "Machine_machine_name_key")
   created_by   Int
   createdAt    DateTime      @default(now())
-  user         user          @relation(fields: [created_by], references: [id], map: "Machine_created_by_fkey")
+  user         user          @relation(fields: [created_by], references: [id], onDelete: Cascade)
   machinedata  machinedata[]
 
   @@index([created_by], map: "Machine_created_by_fkey")

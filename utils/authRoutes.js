@@ -10,33 +10,40 @@ const prisma = new PrismaClient();
 const JWT_SECRET = 'qwertyuiop@1234';
 
 // 👉 Register Route
+// Backend: routes/auth.js
 router.post('/register', async (req, res) => {
-    const { username, password } = req.body;
+  const { username, password, role } = req.body;
 
-    if (!username || !password) {
-        return res.status(400).json({ error: 'Username and password are required' });
+  if (!username || !password) {
+    return res.status(400).json({ error: 'Username and password are required' });
+  }
+
+  // Validate role if provided
+  const validRoles = ["ADMIN", "USER", "GUEST"];
+  if (role && !validRoles.includes(role)) {
+    return res.status(400).json({ error: 'Invalid role' });
+  }
+
+  try {
+    const existingUser = await prisma.user.findUnique({ where: { username } });
+    if (existingUser) {
+      return res.status(400).json({ error: 'Username already taken' });
     }
 
-    try {
-        // Check if user already exists
-        const existingUser = await prisma.user.findUnique({ where: { username } });
-        if (existingUser) {
-            return res.status(400).json({ error: 'Username already taken' });
-        }
+    const hashedPassword = await bcrypt.hash(password, 10);
 
-        const hashedPassword = await bcrypt.hash(password, 10);
+    await prisma.user.create({
+      data: {
+        username,
+        password: hashedPassword,
+        role: role || "USER", // Default to USER if role is not provided
+      },
+    });
 
-        await prisma.user.create({
-            data: {
-                username,
-                password: hashedPassword,
-            },
-        });
-
-        res.status(201).json({ message: 'User registered successfully' });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
+    res.status(201).json({ message: 'User registered successfully' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // 👉 Login Route
@@ -86,7 +93,7 @@ router.post('/login', async (req, res) => {
       return res.status(401).json({ error: 'Incorrect password' });
     }
 
-    const token = jwt.sign({ userId: user.id, username: user.username }, JWT_SECRET, { expiresIn: '1h' });
+    const token = jwt.sign({ userId: user.id, username: user.username,role:user.role ||"USER"}, JWT_SECRET, { expiresIn: '1h' });
     const payload = jwt.verify(token, JWT_SECRET);
    console.log('Payload:', payload);
     res.json({ token, payload });
@@ -129,10 +136,49 @@ router.post('/verify-otp', async(req, res) => {
     }
 });
 
+router.put('/reset-password', async (req, res) => {
+    const { token, newPassword } = req.body;
 
+    if (!token || !newPassword) {
+        return res.status(400).json({ error: 'Token and new password are required' });
+    }
 
+    if (!verifiedOTPs.has(token)) {
+        return res.status(403).json({ error: 'OTP not verified or expired' });
+    }
 
+    try {
+        const hashedPassword = await bcrypt.hash(newPassword, 10);
 
+        await updateUserPassword(token, hashedPassword); 
+        verifiedOTPs.delete(token);
 
+        return res.status(200).json({ message: 'Password updated successfully' });
+    } catch (err) {
+        return res.status(500).json({ error: 'Failed to update password' });
+    }
+});
+router.get('/users', async (req, res) => {
+  try {
+    const users = await prisma.user.findMany({
+      select: {
+        username: true,
+        role: true
+      }
+    });
+
+    // Add serial number (sno)
+    const usersWithSno = users.map((user, index) => ({
+      sno: index + 1,
+      username: user.username,
+      role: user.role
+    }));
+
+    res.status(200).json(usersWithSno);
+  } catch (error) {
+    console.error('Error fetching users:', error);
+    res.status(500).json({ error: 'Internal Server Error' });
+  }
+});
 
 module.exports = router;

@@ -1,74 +1,64 @@
-const express = require('express');
+const express = require("express");
+const { PrismaClient } = require("@prisma/client");
 const router = express.Router();
-const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-//console.log('✅ chart.js loaded');
 
-/* router.get('/', (req, res) => {
-  res.send('Chart route working');
-}); */
-
-router.get('/chart-data', async (req, res) => {
- 
-    const start_date = '2025-05-25'; // Correct format
-  const end_date = '2025-05-31';
+router.get("/data", async (req, res) => {
   try {
-   const data = await prisma.$queryRaw`
-  SELECT 
-    DATE(date) as date, 
-  
-    SUM(CAST(data AS DECIMAL(10,2))) as data
-  FROM machinedata
-  WHERE DATE(date) BETWEEN ${start_date} AND ${end_date}
-  GROUP BY DATE(date);
-`;
+    let { startDate, endDate, groupBy } = req.query;
 
-    res.json(data);
+    // Default to today if not provided
+    if (!startDate || !endDate) {
+      const today = new Date();
+      const yyyy = today.getFullYear();
+      const mm = String(today.getMonth() + 1).padStart(2, "0");
+      const dd = String(today.getDate()).padStart(2, "0");
+      startDate = `${yyyy}-${mm}-${dd}T00:00:00.000Z`;
+      endDate = `${yyyy}-${mm}-${dd}T23:59:59.999Z`;
+    }
+
+    groupBy = groupBy ? groupBy.toLowerCase() : "day";
+    let data = [];
+
+    if (groupBy === "month") {
+      data = await prisma.$queryRaw`
+        SELECT DATE_FORMAT(date, '%Y-%m') AS period,
+               SUM(CAST(data AS DECIMAL(10,2))) AS total
+        FROM machinedata
+        WHERE date BETWEEN ${new Date(startDate)} AND ${new Date(endDate)}
+        GROUP BY period
+        ORDER BY period;
+      `;
+    } else if (groupBy === "year") {
+      data = await prisma.$queryRaw`
+        SELECT DATE_FORMAT(date, '%Y') AS period,
+               SUM(CAST(data AS DECIMAL(10,2))) AS total
+        FROM machinedata
+        WHERE date BETWEEN ${new Date(startDate)} AND ${new Date(endDate)}
+        GROUP BY period
+        ORDER BY period;
+      `;
+    } else {
+      // Default to daily
+      data = await prisma.$queryRaw`
+        SELECT DATE(date) AS period,
+               SUM(CAST(data AS DECIMAL(10,2))) AS total
+        FROM machinedata
+        WHERE date BETWEEN ${new Date(startDate)} AND ${new Date(endDate)}
+        GROUP BY period
+        ORDER BY period;
+      `;
+    }
+
+    res.json({
+      startDate,
+      endDate,
+      data,
+    });
   } catch (error) {
-    console.error('Error fetching chart data:', error);
-    res.status(500).json({ error: 'Internal server error' });
+    console.error("Error fetching data:", error);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
-router.get('/chart-data/mon', async (req, res) => {
-  try {
-    const data = await prisma.$queryRaw`
-      SELECT DATE_FORMAT(date, '%b') AS month, 
-             SUM(CAST(data AS DECIMAL(10,2))) AS total
-      FROM machinedata
-      GROUP BY month
-      ORDER BY STR_TO_DATE(month, '%b');
-    `;
-
-    res.json(data);
-  } catch (error) {
-    console.error('Error fetching chart data:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-
-router.get('/chart-data-day', async (req, res) => {
-  const start_date = '2025-05-25';
-  const end_date = '2025-05-30';
-
-  try {
-    const data = await prisma.$queryRaw`
-      SELECT 
-        DATE_FORMAT(date, '%a') AS day,  -- %a gives abbreviated weekday name (e.g., Mon)
-        SUM(CAST(data AS DECIMAL(10,2))) AS data
-      FROM machinedata
-      WHERE date BETWEEN ${start_date} AND ${end_date}
-      GROUP BY day
-      ORDER BY FIELD(day, 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun');  -- optional ordering
-    `;
-
-    res.json(data);
-  } catch (error) {
-    console.error('Error fetching chart data:', error);
-    res.status(500).json({ error: 'Internal server error' });
-  }
-});
-
-
 
 module.exports = router;
