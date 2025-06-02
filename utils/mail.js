@@ -21,7 +21,7 @@ const transporter = nodemailer.createTransport({
 async function sendOTPEmail(toEmail) {
   const otp = generateOTP();
   try {
-  const token = jwt.sign({ otp }, JWT_SECRET, { expiresIn: "5m" });
+  const token = jwt.sign({ otp }, JWT_SECRET, { expiresIn: "10m" });
   const mailOptions = {
     from: `"POWER CONSUMPTION TRACKER OTP" <${process.env.EMAIL_USER}>`,
     to: toEmail,

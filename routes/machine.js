@@ -5,31 +5,33 @@ const prisma = new PrismaClient();
 const router = express.Router();
 
 
-//router.use(verifyToken)
+router.use(verifyToken)
 
-router.post('/post',async(req,res)=>{
-const {machine_name, created_by}=req.body;
-try{
-    const machine=await prisma.machine.create({
-        data:{
-            machine_name,
-            created_by,
-        },
+router.post('/post', async (req, res) => {
+  const { machine_name } = req.body;
+  const created_by = req.user.id; // fetched from token
+
+  try {
+    const machine = await prisma.machine.create({
+      data: {
+        machine_name,
+        created_by,
+      },
     });
     res.json(machine);
-}
-catch(error)
-{
-    res.status(400).json({error:error.message});
-}
-
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
 });
 
-router.get('/get',async (req,res)=>{
-    const machines=await prisma.machine.findMany({
-        include:{createdBy: true, data: true},
-    });
+
+router.get("/", async (req, res) => {
+  try {
+    const machines = await prisma.machine.findMany();
     res.json(machines);
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
 });
 
 router.put('/:id',async(req,res)=>{

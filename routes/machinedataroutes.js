@@ -3,6 +3,9 @@ const express = require('express');
 const { PrismaClient } = require('@prisma/client');
 const router = express.Router();
 const prisma = new PrismaClient();
+const verifyToken = require('../middleware/verifyToken');
+
+router.use(verifyToken)
 
 // Add machine data
 router.post('/add', async (req, res) => {
@@ -41,7 +44,7 @@ router.get('/', async (req, res) => {
       skip: offset,
       take: limit,
       include: { machine: { select: { machine_name: true } } },
-      orderBy: { data_id: 'asc' },
+      orderBy: { data: 'asc' },
     });
     res.json(data);
   } catch (error) {
@@ -79,7 +82,7 @@ router.get('/getbyname/:name', async (req, res) => {
         machine: {
           machine_name: {
             contains: name,
-            mode: 'insensitive',
+           
           },
         },
       },
@@ -102,7 +105,7 @@ router.get('/getbyname/:name', async (req, res) => {
   }
 });
 
-/* // Get machine data by date range
+/// Get machine data by date range
 router.get('/bydate', async (req, res) => {
   try {
     let { startDate, endDate } = req.query;
@@ -130,7 +133,7 @@ router.get('/bydate', async (req, res) => {
     console.error('Error fetching bydate data:', error);
     res.status(500).json({ error: error.message });
   }
-}); */
+}); 
 
 
 // Update machine data
