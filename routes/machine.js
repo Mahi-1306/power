@@ -26,8 +26,13 @@ router.post('/post', async (req, res) => {
 
 
 router.get("/", async (req, res) => {
+  const userId = req.user.userId;
   try {
-    const machines = await prisma.machine.findMany();
+    const machines = await prisma.machine.findMany({
+      where: {
+        created_by: userId, // Filter by the user who created the machine
+      },
+    });
     res.json(machines);
   } catch (error) {
     res.status(500).json({ error: error.message });

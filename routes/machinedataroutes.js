@@ -38,11 +38,15 @@ router.post('/add', async (req, res) => {
 router.get('/', async (req, res) => {
   const limit = parseInt(req.query.limit) || 10;
   const offset = parseInt(req.query.offset) || 0;
+  const userId = req.user.userId;
+  const userRole = req.user.role || 'USER';
 
   try {
+    const whereClause = userRole === 'ADMIN' ? {} : { machine: { created_by: userId } };
     const data = await prisma.machinedata.findMany({
       skip: offset,
       take: limit,
+      where: whereClause,
       include: { machine: { select: { machine_name: true } } },
       orderBy: { data: 'asc' },
     });
@@ -75,7 +79,7 @@ router.get('/getbyid/:id', async (req, res) => {
 // Get machine data by machine name
 router.get('/getbyname/:name', async (req, res) => {
   const name = req.params.name;
-
+ const userId = req.user.userId;
   try {
     const rawData = await prisma.machinedata.findMany({
       where: {
@@ -84,6 +88,7 @@ router.get('/getbyname/:name', async (req, res) => {
             contains: name,
            
           },
+          created_by: userId,
         },
       },
       include: { machine: { select: { machine_name: true } } },
@@ -109,6 +114,7 @@ router.get('/getbyname/:name', async (req, res) => {
 router.get('/bydate', async (req, res) => {
   try {
     let { startDate, endDate } = req.query;
+    const userId = req.user.userId;
 
     if (!startDate || !endDate) {
       const today = new Date();
@@ -124,6 +130,9 @@ router.get('/bydate', async (req, res) => {
         date: {
           gte: new Date(startDate),
           lte: new Date(endDate),
+        },
+        machine: {
+          created_by: userId, // Filter by the user who created the machine
         },
       },
       include: { machine: { select: { machine_name: true } } },

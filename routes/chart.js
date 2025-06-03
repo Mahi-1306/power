@@ -1,12 +1,13 @@
 const express = require("express");
 const { PrismaClient } = require("@prisma/client");
+const verifyToken = require("../middleware/verifyToken");
 const router = express.Router();
 const prisma = new PrismaClient();
-
+router.use(verifyToken);
 router.get("/data", async (req, res) => {
   try {
     let { startDate, endDate, groupBy } = req.query;
-
+  const userId = req.user.userId;
     // Default to today if not provided
     if (!startDate || !endDate) {
       const today = new Date();
@@ -22,29 +23,35 @@ router.get("/data", async (req, res) => {
 
     if (groupBy === "month") {
       data = await prisma.$queryRaw`
-        SELECT DATE_FORMAT(date, '%Y-%m') AS period,
-               SUM(CAST(data AS DECIMAL(10,2))) AS total
+        SELECT DATE_FORMAT(machinedata.date, '%Y-%m') AS period,
+               SUM(CAST(machinedata.data AS DECIMAL(10,2))) AS total
         FROM machinedata
-        WHERE date BETWEEN ${new Date(startDate)} AND ${new Date(endDate)}
+        JOIN machine ON machinedata.machine_id = machine.id
+        WHERE machinedata.date BETWEEN ${new Date(startDate)} AND ${new Date(endDate)}
+        AND machine.created_by = ${userId}
         GROUP BY period
         ORDER BY period;
       `;
     } else if (groupBy === "year") {
-      data = await prisma.$queryRaw`
-        SELECT DATE_FORMAT(date, '%Y') AS period,
-               SUM(CAST(data AS DECIMAL(10,2))) AS total
+        data = await prisma.$queryRaw`
+      SELECT DATE_FORMAT(machinedata.date, '%Y') AS period,
+               SUM(CAST(machinedata.data AS DECIMAL(10,2))) AS total
         FROM machinedata
-        WHERE date BETWEEN ${new Date(startDate)} AND ${new Date(endDate)}
+        JOIN machine ON machinedata.machine_id = machine.id
+        WHERE machinedata.date BETWEEN ${new Date(startDate)} AND ${new Date(endDate)}
+        AND machine.created_by = ${userId}
         GROUP BY period
         ORDER BY period;
       `;
     } else {
       // Default to daily
       data = await prisma.$queryRaw`
-        SELECT DATE(date) AS period,
-               SUM(CAST(data AS DECIMAL(10,2))) AS total
+       SELECT DATE(machinedata.date) AS period,
+               SUM(CAST(machinedata.data AS DECIMAL(10,2))) AS total
         FROM machinedata
-        WHERE date BETWEEN ${new Date(startDate)} AND ${new Date(endDate)}
+        JOIN machine ON machinedata.machine_id = machine.id
+        WHERE machinedata.date BETWEEN ${new Date(startDate)} AND ${new Date(endDate)}
+        AND machine.created_by = ${userId}
         GROUP BY period
         ORDER BY period;
       `;
