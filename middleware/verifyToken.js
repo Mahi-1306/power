@@ -2,7 +2,7 @@ const jwt = require('jsonwebtoken');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 
-const JWT_SECRET = 'qwertyuiop@1234';
+const JWT_SECRET = process.env.JWT_SECRET;
 
 // Configurable debug logging (disable in production if needed)
 const ENABLE_DEBUG_LOGGING = process.env.NODE_ENV !== 'production';
@@ -39,6 +39,7 @@ async function verifyToken(req, res, next) {
     }
 
     // Attach user data to request object
+    console.log("Helloooooooooooooooooooooooooooooooooooooooo", user.id)
     req.user = {
       userId: user.id,
       username: user.username,

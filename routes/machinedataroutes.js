@@ -5,7 +5,7 @@ const router = express.Router();
 const prisma = new PrismaClient();
 const verifyToken = require('../middleware/verifyToken');
 
-router.use(verifyToken)
+
 
 // Add machine data
 router.post('/add', async (req, res) => {
@@ -24,7 +24,7 @@ router.post('/add', async (req, res) => {
       data: {
         machine_id: parseInt(machine_id),
         date: parsedDate || new Date(),
-        data: parseFloat(data),
+        data: data,
       },
     });
     res.status(201).json(result);
@@ -33,6 +33,9 @@ router.post('/add', async (req, res) => {
     res.status(500).json({ error: error.message });
   }
 });
+
+
+router.use(verifyToken)
 
 // Get all machine data with pagination
 router.get('/', async (req, res) => {

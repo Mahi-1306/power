@@ -9,7 +9,7 @@ router.use(verifyToken)
 
 router.post('/post', async (req, res) => {
   const { machine_name } = req.body;
-  const created_by = req.user.id; // fetched from token
+  const created_by = req.user.userId; // fetched from token
 
   try {
     const machine = await prisma.machine.create({
@@ -39,32 +39,55 @@ router.get("/", async (req, res) => {
   }
 });
 
-router.put('/:id',async(req,res)=>{
-    const{id}=req.params;
-    const{machine_name,created_by}=req.body;
-    try{
-        const machine=await prisma.machine.update({
-            where:{id},
-            data:{machine_name,created_by},
-        });
-        res.json(machine);
+router.put('/put/:id', async (req, res) => {
+  const userId = req.user.userId;
+  const { id } = req.params; // <-- FIXED
+  const { machine_name } = req.body;
+
+  try {
+    const machine = await prisma.machine.findUnique({
+      where: { id: parseInt(id) }, // parse to integer if `id` is a number
+    });
+
+    if (!machine || machine.created_by !== userId) {
+      return res.status(403).json({ error: 'Unauthorized or machine not found' });
     }
-    catch(error)
-    {
-        res.status(400).json({error:error.message});
-    }
+
+    const updatedMachine = await prisma.machine.update({
+      where: { id: parseInt(id) },
+      data: { machine_name },
+    });
+
+    res.json(updatedMachine);
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
 });
 
-router.delete('/:id',async(req,res)=>{
-    const {id}=req.params;
-    try{
-        await prisma.machine.delete({where:{id}});
-        res.json({message:'Machine deleted'});
+
+router.delete('/del/:id', async (req, res) => {
+  const userId = req.user.userId;
+  const { id } = req.params; // <-- FIXED
+
+  try {
+    const machine = await prisma.machine.findUnique({
+      where: { id: parseInt(id) }, // parse to integer if `id` is a number
+    });
+
+    if (!machine || machine.created_by !== userId) {
+      return res.status(403).json({ error: 'Unauthorized or machine not found' });
     }
-    catch(error)
-    {
-        res.status(400).json({error:error.message});
-    }
+
+    await prisma.machine.delete({
+      where: { id: parseInt(id) },
+    });
+
+    res.json({ message: 'Machine deleted successfully' });
+  } catch (error) {
+    res.status(400).json({ error: error.message });
+  }
 });
+
+
 
 module.exports=router;
